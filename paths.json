@@ -1,10 +1,10 @@
 {
   "mappings": [
-    "/content/rowena-eds/:/",
-    "/content/rowena-eds/configuration:/.helix/config.json",
-    "/content/rowena-eds/metadata:/metadata.json"
+    "/content/rowena-eds-01/:/",
+    "/content/rowena-eds-01/configuration:/.helix/config.json",
+    "/content/rowena-eds-01/metadata:/metadata.json"
   ],
   "includes": [
-    "/content/rowena-eds/"
+    "/content/rowena-eds-01/"
   ]
 }

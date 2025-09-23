@@ -49,9 +49,11 @@
     font-size: 18px;
     color: black;
   }
+
   .btn:active {
     *transform: scale(1.1);
   }
+  
   .btn-prev {
     top: 45%;
     left: 2%;

@@ -5,10 +5,10 @@ const placeholders = await fetchPlaceholders(getMetadata('locale'));
 const { btnNxt, btnPre } = placeholders;
 
 export default function decorate(block) {
-  console.log("placeholders --->", placeholders, btnNxt, btnPre);
+  console.log('placeholders --->', placeholders, btnNxt, btnPre);
   const rows = [...block.children];
   [...block.children].forEach((row, r) => {
-    if (r === 0){
+    if (r === 0) {
       const nextbtn = document.createElement('button');
       nextbtn.classList.add('btn');
       nextbtn.classList.add('btn-next');
@@ -30,50 +30,50 @@ export default function decorate(block) {
         }
       });
     }
-  }); 
+  });
 
-  const slides = document.querySelectorAll(".slide");
+  const slides = document.querySelectorAll('.slide');
   // loop through slides and set each slides translateX
   slides.forEach((slide, indx) => {
     slide.style.transform = `translateX(${indx * 100}%)`;
   });
 
   // select next slide button
-  const nextSlide = document.querySelector(".btn-next");
+  const nextSlide = document.querySelector('.btn-next');
   // current slide counter
   let curSlide = 0;
   // maximum number of slides
-  let maxSlide = slides.length - 1;
+  const maxSlide = slides.length - 1;
 
   // add event listener and navigation functionality
-  nextSlide.addEventListener("click", function () {
+  nextSlide.addEventListener('click', () => {
     // check if current slide is the last and reset current slide
     if (curSlide === maxSlide) {
       curSlide = 0;
     } else {
-      curSlide++;
+      curSlide = curSlide + 1;
     }
     //   move slide by -100%
     slides.forEach((slide, indx) => {
       slide.style.transform = `translateX(${100 * (indx - curSlide)}%)`;
     });
   });
-  
+
   // select next slide button
-  const prevSlide = document.querySelector(".btn-prev");
+  const prevSlide = document.querySelector('.btn-prev');
 
   // add event listener and navigation functionality
-  prevSlide.addEventListener("click", function () {
-      // check if current slide is the first and reset current slide to last
-      if (curSlide === 0) {
-          curSlide = maxSlide;
-      } else {
-          curSlide--;
-      }
+  prevSlide.addEventListener('click', () => {
+    // check if current slide is the first and reset current slide to last
+    if (curSlide === 0) {
+        curSlide = maxSlide;
+    } else {
+        curSlide = curSlide - 1;
+    }
 
-      //   move slide by 100%
-      slides.forEach((slide, indx) => {
-          slide.style.transform = `translateX(${100 * (indx - curSlide)}%)`;
-      });
+    //   move slide by 100%
+    slides.forEach((slide, indx) => {
+        slide.style.transform = `translateX(${100 * (indx - curSlide)}%)`;
+    });
   });
 }

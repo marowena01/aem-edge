@@ -51,7 +51,7 @@ export default function decorate(block) {
     if (curSlide === maxSlide) {
       curSlide = 0;
     } else {
-      curSlide = curSlide + 1;
+      curSlide = curSlide += 1;
     }
     //   move slide by -100%
     slides.forEach((slide, indx) => {
@@ -66,14 +66,14 @@ export default function decorate(block) {
   prevSlide.addEventListener('click', () => {
     // check if current slide is the first and reset current slide to last
     if (curSlide === 0) {
-        curSlide = maxSlide;
+      curSlide = maxSlide;
     } else {
-        curSlide = curSlide - 1;
+      curSlide = curSlide -= 1;
     }
 
     //   move slide by 100%
     slides.forEach((slide, indx) => {
-        slide.style.transform = `translateX(${100 * (indx - curSlide)}%)`;
+      slide.style.transform = `translateX(${100 * (indx - curSlide)}%)`;
     });
   });
 }

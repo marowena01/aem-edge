@@ -522,14 +522,13 @@ function decorateSections(main) {
 // eslint-disable-next-line import/prefer-default-export
 async function fetchPlaceholders(prefix = 'default') {
   window.placeholders = window.placeholders || {};
-  console.log("window.placeholders",window.placeholders);
+  console.log('window.placeholders',window.placeholders);
   if (!window.placeholders[prefix]) {
     window.placeholders[prefix] = new Promise((resolve) => {
-      console.log("===>",prefix)
-      let localizedURL = new URL(window.location.origin+"/"+prefix+"/placeholders.json");
-     
-      //console.log("prefix",prefix,(`${prefix === 'default' ? '' : prefix}/placeholders.json`));
-      //fetch(`${prefix === 'default' ? '' : prefix}/placeholders.json`)
+      console.log('===>', prefix)
+      const localizedURL = new URL(window.location.origin + '/' + prefix + '/placeholders.json');
+      // console.log("prefix",prefix,(`${prefix === 'default' ? '' : prefix}/placeholders.json`));
+      // fetch(`${prefix === 'default' ? '' : prefix}/placeholders.json`)
       fetch(localizedURL)
         .then((resp) => {
           if (resp.ok) {
@@ -556,7 +555,6 @@ async function fetchPlaceholders(prefix = 'default') {
   }
   return window.placeholders[`${prefix}`];
 }
-
 
 /**
  * Builds a block DOM Element from a two dimensional array, string, or object

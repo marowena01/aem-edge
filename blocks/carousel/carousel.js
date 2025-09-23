@@ -8,47 +8,43 @@ export default function decorate(block) {
   console.log("placeholders --->", placeholders, btnNxt, btnPre);
   const rows = [...block.children];
   [...block.children].forEach((row, r) => {
-    if (r == 0){
+    if (r === 0){
       const nextbtn = document.createElement('button');
       nextbtn.classList.add('btn');
       nextbtn.classList.add('btn-next');
       const node = document.createTextNode(btnNxt);
       nextbtn.append(node);
       row.replaceWith(nextbtn);
-    } else if (r == rows.length - 1) {
-        const prebtn = document.createElement('button');
-        prebtn.classList.add('btn');
-        prebtn.classList.add('btn-prev');
-        const node = document.createTextNode(btnPre);
-        prebtn.append(node);
-        row.replaceWith(prebtn);
+    } else if (r === rows.length - 1) {
+      const prebtn = document.createElement('button');
+      prebtn.classList.add('btn');
+      prebtn.classList.add('btn-prev');
+      const node = document.createTextNode(btnPre);
+      prebtn.append(node);
+      row.replaceWith(prebtn);
     } else {
-        row.classList.add('slide');
-        [...row.children].forEach((col, c) => {
-          if (c == 1) {
-            col.classList.add('slide-text');
-          }
-      
-        });
+      row.classList.add('slide');
+      [...row.children].forEach((col, c) => {
+        if (c === 1) {
+          col.classList.add('slide-text');
+        }
+      });
     }
   }); 
-  
-  
+
   const slides = document.querySelectorAll(".slide");
-  
   // loop through slides and set each slides translateX
   slides.forEach((slide, indx) => {
     slide.style.transform = `translateX(${indx * 100}%)`;
   });
-  
+
   // select next slide button
   const nextSlide = document.querySelector(".btn-next");
-  
   // current slide counter
   let curSlide = 0;
   // maximum number of slides
   let maxSlide = slides.length - 1;
-  
+
   // add event listener and navigation functionality
   nextSlide.addEventListener("click", function () {
     // check if current slide is the last and reset current slide
@@ -57,7 +53,6 @@ export default function decorate(block) {
     } else {
       curSlide++;
     }
-    
     //   move slide by -100%
     slides.forEach((slide, indx) => {
       slide.style.transform = `translateX(${100 * (indx - curSlide)}%)`;
@@ -81,5 +76,4 @@ export default function decorate(block) {
           slide.style.transform = `translateX(${100 * (indx - curSlide)}%)`;
       });
   });
-
 }

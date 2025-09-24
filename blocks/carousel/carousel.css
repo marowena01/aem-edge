@@ -140,8 +140,14 @@
     left: 24px;
     right: 24px;
   }
-  
-  .btn-next {
-    top: 45%;
-    right: 2%;
+
+  .carousel .carousel-slide .carousel-slide-content {
+    --slide-content-width: calc((100% - 184px) / 2);
+
+    margin: 92px;
   }
+
+  .carousel .carousel-slide .carousel-slide-content[data-align='justify'] {
+    --slide-content-width: auto;
+  }
+}

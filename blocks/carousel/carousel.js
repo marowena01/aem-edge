@@ -30,16 +30,33 @@ function updateActiveSlide(slide) {
 
 function showSlide(block, slideIndex = 0) {
   const slides = block.querySelectorAll('.carousel-slide');
+
+  // Early return if no slides found
+  if (!slides || slides.length === 0) {
+    console.warn('No carousel slides found');
+    return;
+  }
+
   let realSlideIndex = slideIndex < 0 ? slides.length - 1 : slideIndex;
   if (slideIndex >= slides.length) realSlideIndex = 0;
   const activeSlide = slides[realSlideIndex];
 
+  // Check if activeSlide exists before trying to use it
+  if (!activeSlide) {
+    console.warn('Active slide not found at index:', realSlideIndex);
+    return;
+  }
+
   activeSlide.querySelectorAll('a').forEach((link) => link.removeAttribute('tabindex'));
-  block.querySelector('.carousel-slides').scrollTo({
-    top: 0,
-    left: activeSlide.offsetLeft,
-    behavior: 'smooth',
-  });
+
+  const slidesContainer = block.querySelector('.carousel-slides');
+  if (slidesContainer) {
+    slidesContainer.scrollTo({
+      top: 0,
+      left: activeSlide.offsetLeft,
+      behavior: 'smooth',
+    });
+  }
 }
 
 function bindEvents(block) {
@@ -53,12 +70,20 @@ function bindEvents(block) {
     });
   });
 
-  block.querySelector('.slide-prev').addEventListener('click', () => {
-    showSlide(block, parseInt(block.dataset.activeSlide, 10) - 1);
-  });
-  block.querySelector('.slide-next').addEventListener('click', () => {
-    showSlide(block, parseInt(block.dataset.activeSlide, 10) + 1);
-  });
+  const prevButton = block.querySelector('.slide-prev');
+  const nextButton = block.querySelector('.slide-next');
+
+  if (prevButton) {
+    prevButton.addEventListener('click', () => {
+      showSlide(block, parseInt(block.dataset.activeSlide, 10) - 1);
+    });
+  }
+
+  if (nextButton) {
+    nextButton.addEventListener('click', () => {
+      showSlide(block, parseInt(block.dataset.activeSlide, 10) + 1);
+    });
+  }
 
   const slideObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {

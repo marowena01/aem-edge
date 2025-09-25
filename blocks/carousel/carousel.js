@@ -79,8 +79,7 @@ function createSlide(row, slideIndex, carouselId) {
   const columns = row.querySelectorAll(':scope > div');
 
   if (columns.length === 0) {
-    // Fallback: if no columns, treat the entire row content as a single item
-    // This handles cases where content is directly in the row without column divs
+    // No columns - treat the entire row content as slide content
     const contentDiv = document.createElement('div');
     contentDiv.classList.add('carousel-slide-content');
 
@@ -111,15 +110,6 @@ function createSlide(row, slideIndex, carouselId) {
   return slide;
 }
 
-function processRows(rows) {
-  // Skip the first row (carousel block identifier) and get content rows
-  const contentRows = Array.from(rows).slice(1);
-
-  if (contentRows.length === 0) return [];
-
-  return contentRows;
-}
-
 let carouselId = 0;
 export default async function decorate(block) {
   carouselId += 1;
@@ -127,11 +117,11 @@ export default async function decorate(block) {
 
   const allRows = block.querySelectorAll(':scope > div');
 
-  // Process rows (skip first carousel identifier row)
-  const contentRows = processRows(allRows);
+  // Skip the first row (carousel identifier) and get content rows
+  const contentRows = Array.from(allRows).slice(1);
   const isSingleSlide = contentRows.length < 2;
 
-  // Remove the carousel identifier row (first row) after processing
+  // Remove the carousel identifier row (first row)
   if (allRows.length > 0) {
     allRows[0].remove();
   }
@@ -146,6 +136,7 @@ export default async function decorate(block) {
 
   const slidesWrapper = document.createElement('ul');
   slidesWrapper.classList.add('carousel-slides');
+  block.prepend(slidesWrapper);
 
   let slideIndicators;
   if (!isSingleSlide) {

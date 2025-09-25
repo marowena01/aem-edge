@@ -77,7 +77,7 @@ function createSlide(row, slideIndex, carouselId) {
   slide.classList.add('carousel-slide');
 
   const columns = row.querySelectorAll(':scope > div');
-  
+
   if (columns.length === 0) {
     // No columns - check if row contains image content
     const images = row.querySelectorAll('img, picture');
@@ -85,23 +85,23 @@ function createSlide(row, slideIndex, carouselId) {
       // Has images - treat as image slide
       const imageDiv = document.createElement('div');
       imageDiv.classList.add('carousel-slide-image');
-      
+
       // Move all content from row to the image div
       while (row.firstChild) {
         imageDiv.appendChild(row.firstChild);
       }
-      
+
       slide.append(imageDiv);
     } else {
       // No images - treat as content slide
       const contentDiv = document.createElement('div');
       contentDiv.classList.add('carousel-slide-content');
-      
+
       // Move all content from row to the content div
       while (row.firstChild) {
         contentDiv.appendChild(row.firstChild);
       }
-      
+
       slide.append(contentDiv);
     }
   } else if (columns.length === 1) {
@@ -134,9 +134,9 @@ let carouselId = 0;
 export default async function decorate(block) {
   carouselId += 1;
   block.setAttribute('id', `carousel-${carouselId}`);
-  
+
   const allRows = block.querySelectorAll(':scope > div');
-  
+
   // Skip the first row (carousel identifier) and get content rows
   const contentRows = Array.from(allRows).slice(1);
   const isSingleSlide = contentRows.length < 2;

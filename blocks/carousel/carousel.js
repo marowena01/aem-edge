@@ -76,31 +76,10 @@ function createSlide(row, slideIndex, carouselId) {
   slide.setAttribute('id', `carousel-${carouselId}-slide-${slideIndex}`);
   slide.classList.add('carousel-slide');
 
-  const columns = row.querySelectorAll(':scope > div');
-
-  if (columns.length === 0) {
-    // No columns - treat the entire row content as slide content
-    const contentDiv = document.createElement('div');
-    contentDiv.classList.add('carousel-slide-content');
-
-    // Move all content from row to the content div
-    while (row.firstChild) {
-      contentDiv.appendChild(row.firstChild);
-    }
-
-    slide.append(contentDiv);
-  } else if (columns.length === 1) {
-    // Single column - treat as image content
-    const column = columns[0];
-    column.classList.add('carousel-slide-image');
+  row.querySelectorAll(':scope > div').forEach((column, colIdx) => {
+    column.classList.add(`carousel-slide-${colIdx === 0 ? 'image' : 'content'}`);
     slide.append(column);
-  } else {
-    // Multiple columns - first is image, rest is content
-    columns.forEach((column, colIdx) => {
-      column.classList.add(`carousel-slide-${colIdx === 0 ? 'image' : 'content'}`);
-      slide.append(column);
-    });
-  }
+  });
 
   const labeledBy = slide.querySelector('h1, h2, h3, h4, h5, h6');
   if (labeledBy) {
@@ -114,17 +93,8 @@ let carouselId = 0;
 export default async function decorate(block) {
   carouselId += 1;
   block.setAttribute('id', `carousel-${carouselId}`);
-
-  const allRows = block.querySelectorAll(':scope > div');
-
-  // Skip the first row (carousel identifier) and get content rows
-  const contentRows = Array.from(allRows).slice(1);
-  const isSingleSlide = contentRows.length < 2;
-
-  // Remove the carousel identifier row (first row)
-  if (allRows.length > 0) {
-    allRows[0].remove();
-  }
+  const rows = block.querySelectorAll(':scope > div');
+  const isSingleSlide = rows.length < 2;
 
   const placeholders = await fetchPlaceholders();
 
@@ -150,14 +120,14 @@ export default async function decorate(block) {
     const slideNavButtons = document.createElement('div');
     slideNavButtons.classList.add('carousel-navigation-buttons');
     slideNavButtons.innerHTML = `
-      <button type="button" class="slide-prev" aria-label="${placeholders.previousSlide || 'Previous Slide'}"></button>
+      <button type="button" class= "slide-prev" aria-label="${placeholders.previousSlide || 'Previous Slide'}"></button>
       <button type="button" class="slide-next" aria-label="${placeholders.nextSlide || 'Next Slide'}"></button>
     `;
 
     container.append(slideNavButtons);
   }
 
-  contentRows.forEach((row, idx) => {
+  rows.forEach((row, idx) => {
     const slide = createSlide(row, idx, carouselId);
     slidesWrapper.append(slide);
 
@@ -165,7 +135,7 @@ export default async function decorate(block) {
       const indicator = document.createElement('li');
       indicator.classList.add('carousel-slide-indicator');
       indicator.dataset.targetSlide = idx;
-      indicator.innerHTML = `<button type="button" aria-label="${placeholders.showSlide || 'Show Slide'} ${idx + 1} ${placeholders.of || 'of'} ${contentRows.length}"></button>`;
+      indicator.innerHTML = `<button type="button" aria-label="${placeholders.showSlide || 'Show Slide'} ${idx + 1} ${placeholders.of || 'of'} ${rows.length}"></button>`;
       slideIndicators.append(indicator);
     }
     row.remove();

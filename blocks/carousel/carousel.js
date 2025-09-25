@@ -76,10 +76,33 @@ function createSlide(row, slideIndex, carouselId) {
   slide.setAttribute('id', `carousel-${carouselId}-slide-${slideIndex}`);
   slide.classList.add('carousel-slide');
 
-  row.querySelectorAll(':scope > div').forEach((column, colIdx) => {
-    column.classList.add(`carousel-slide-${colIdx === 0 ? 'image' : 'content'}`);
-    slide.append(column);
-  });
+  const columns = row.querySelectorAll(':scope > div');
+
+  if (columns.length === 1) {
+    // Single column - treat as image-only slide
+    const imageColumn = columns[0];
+    imageColumn.classList.add('carousel-slide-image');
+    slide.append(imageColumn);
+
+    // Add a class to identify image-only slides for styling
+    slide.classList.add('carousel-slide-image-only');
+  } else if (columns.length >= 2) {
+    // Multiple columns - use existing logic (first = image, second = content)
+    columns.forEach((column, colIdx) => {
+      if (colIdx === 0) {
+        column.classList.add('carousel-slide-image');
+      } else if (colIdx === 1) {
+        column.classList.add('carousel-slide-content');
+      } else {
+        // Additional columns beyond the second one
+        column.classList.add(`carousel-slide-extra-${colIdx}`);
+      }
+      slide.append(column);
+    });
+  } else {
+    // No columns found - create an empty slide (fallback)
+    console.warn('Carousel slide has no content columns:', row);
+  }
 
   const labeledBy = slide.querySelector('h1, h2, h3, h4, h5, h6');
   if (labeledBy) {

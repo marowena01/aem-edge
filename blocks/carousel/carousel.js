@@ -77,11 +77,9 @@ function createSlide(row, slideIndex, carouselId, isImageOnly = false) {
   slide.classList.add('carousel-slide');
 
   if (isImageOnly) {
-    // row itself is an image slide
     row.classList.add('carousel-slide-image');
     slide.append(row);
   } else {
-    // default multi-column layout
     row.querySelectorAll(':scope > div').forEach((column, colIdx) => {
       column.classList.add(`carousel-slide-${colIdx === 0 ? 'image' : 'content'}`);
       slide.append(column);
@@ -139,19 +137,19 @@ export default async function decorate(block) {
 
   let slideCount = 0;
 
-  // Special handling: first row is a title
+  // If first row is a title → keep outside
   const firstRow = rows[0];
   if (firstRow.querySelector('h1, h2, h3, h4, h5, h6')) {
-    block.prepend(firstRow); // keep title outside slides
+    block.prepend(firstRow);
   }
 
-  // Remaining rows → slides
+  // Convert remaining rows to slides
   rows.forEach((row, idx) => {
     if (idx === 0 && row.querySelector('h1, h2, h3, h4, h5, h6')) return; // skip title row
 
-    // detect image-only row (single div containing <picture>)
-    const onlyChild = row.querySelector(':scope > div:only-child picture');
-    const isImageOnly = !!onlyChild;
+    // check if row is image-only → single <div> that contains a <picture>
+    const childDivs = row.querySelectorAll(':scope > div');
+    const isImageOnly = childDivs.length === 1 && childDivs[0].querySelector('picture');
 
     const slide = createSlide(row, slideCount, carouselId, isImageOnly);
     slidesWrapper.append(slide);

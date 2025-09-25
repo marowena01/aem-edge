@@ -77,18 +77,18 @@ function createSlide(row, slideIndex, carouselId) {
   slide.classList.add('carousel-slide');
 
   const columns = row.querySelectorAll(':scope > div');
-  
+
   if (columns.length === 0) {
     // Fallback: if no columns, treat the entire row content as a single item
     // This handles cases where content is directly in the row without column divs
     const contentDiv = document.createElement('div');
     contentDiv.classList.add('carousel-slide-content');
-    
+
     // Move all content from row to the content div
     while (row.firstChild) {
       contentDiv.appendChild(row.firstChild);
     }
-    
+
     slide.append(contentDiv);
   } else if (columns.length === 1) {
     // Single column - treat as image content
@@ -114,18 +114,18 @@ function createSlide(row, slideIndex, carouselId) {
 function processRows(rows) {
   // Always skip the first row (carousel block identifier)
   const contentRows = Array.from(rows).slice(1);
-  
+
   // Check if we have rows with multiple columns or single column/no columns
   const firstContentRow = contentRows[0];
   if (!firstContentRow) return [];
-  
+
   const firstRowColumns = firstContentRow.querySelectorAll(':scope > div');
-  
+
   // If first content row has multiple columns, treat each row as a slide
   if (firstRowColumns.length > 1) {
     return contentRows;
   }
-  
+
   // If rows have single/no columns, each row becomes its own slide
   return contentRows;
 }
@@ -134,14 +134,14 @@ let carouselId = 0;
 export default async function decorate(block) {
   carouselId += 1;
   block.setAttribute('id', `carousel-${carouselId}`);
-  
+
   const allRows = block.querySelectorAll(':scope > div');
-  
+
   // Remove the carousel identifier row (first row)
   if (allRows.length > 0) {
     allRows[0].remove();
   }
-  
+
   const contentRows = processRows(allRows);
   const isSingleSlide = contentRows.length < 2;
 
@@ -155,7 +155,7 @@ export default async function decorate(block) {
 
   const slidesWrapper = document.createElement('ul');
   slidesWrapper.classList.add('carousel-slides');
-  
+
   let slideIndicators;
   if (!isSingleSlide) {
     const slideIndicatorsNav = document.createElement('nav');

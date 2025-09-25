@@ -104,9 +104,10 @@
   transition: background-color 0.2s;
 }
 
-.carousel .carousel-slide-indicator button:disabled,
+/* hover / focus / disabled states */
 .carousel .carousel-slide-indicator button:hover,
-.carousel .carousel-slide-indicator button:focus-visible {
+.carousel .carousel-slide-indicator button:focus-visible,
+.carousel .carousel-slide-indicator button:disabled {
   background-color: var(--text-color);
 }
 

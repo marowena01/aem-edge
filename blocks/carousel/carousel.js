@@ -33,12 +33,11 @@ function showSlide(block, slideIndex = 0) {
 
   // Early return if no slides found
   if (!slides || slides.length === 0) {
-    console.warn('No carousel slides found');
     return;
   }
 
   // Ensure slideIndex is a valid number
-  const validSlideIndex = isNaN(slideIndex) ? 0 : slideIndex;
+  const validSlideIndex = Number.isNaN(slideIndex) ? 0 : slideIndex;
 
   let realSlideIndex = validSlideIndex < 0 ? slides.length - 1 : validSlideIndex;
   if (validSlideIndex >= slides.length) realSlideIndex = 0;
@@ -46,7 +45,6 @@ function showSlide(block, slideIndex = 0) {
 
   // Check if activeSlide exists before trying to use it
   if (!activeSlide) {
-    console.warn('Active slide not found at index:', realSlideIndex);
     return;
   }
 
@@ -73,7 +71,7 @@ function bindEvents(block) {
     button.addEventListener('click', (e) => {
       const slideIndicator = e.currentTarget.parentElement;
       const targetSlide = parseInt(slideIndicator.dataset.targetSlide, 10);
-      showSlide(block, isNaN(targetSlide) ? 0 : targetSlide);
+      showSlide(block, Number.isNaN(targetSlide) ? 0 : targetSlide);
     });
   });
 
@@ -83,7 +81,7 @@ function bindEvents(block) {
   if (prevButton) {
     prevButton.addEventListener('click', () => {
       const currentSlide = parseInt(block.dataset.activeSlide, 10);
-      const prevSlide = isNaN(currentSlide) ? 0 : currentSlide - 1;
+      const prevSlide = Number.isNaN(currentSlide) ? 0 : currentSlide - 1;
       showSlide(block, prevSlide);
     });
   }
@@ -91,7 +89,7 @@ function bindEvents(block) {
   if (nextButton) {
     nextButton.addEventListener('click', () => {
       const currentSlide = parseInt(block.dataset.activeSlide, 10);
-      const nextSlide = isNaN(currentSlide) ? 0 : currentSlide + 1;
+      const nextSlide = Number.isNaN(currentSlide) ? 0 : currentSlide + 1;
       showSlide(block, nextSlide);
     });
   }
@@ -120,7 +118,7 @@ function createSlide(row, slideIndex, carouselId) {
     const imageColumn = columns[0];
     imageColumn.classList.add('carousel-slide-image');
     slide.append(imageColumn);
- 
+
     // Add a class to identify image-only slides for styling
     slide.classList.add('carousel-slide-image-only');
   } else if (columns.length >= 2) {
@@ -136,9 +134,6 @@ function createSlide(row, slideIndex, carouselId) {
       }
       slide.append(column);
     });
-  } else {
-    // No columns found - create an empty slide (fallback)
-    console.warn('Carousel slide has no content columns:', row);
   }
 
   const labeledBy = slide.querySelector('h1, h2, h3, h4, h5, h6');

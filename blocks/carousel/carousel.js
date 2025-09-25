@@ -70,17 +70,53 @@ function bindEvents(block) {
   });
 }
 
-function createSlide(row, slideIndex, carouselId, isImageOnly = false) {
+function createSlide(row, slideIndex, carouselId) {
   const slide = document.createElement('li');
   slide.dataset.slideIndex = slideIndex;
   slide.setAttribute('id', `carousel-${carouselId}-slide-${slideIndex}`);
   slide.classList.add('carousel-slide');
 
-  if (isImageOnly) {
-    row.classList.add('carousel-slide-image');
-    slide.append(row);
+  const columns = row.querySelectorAll(':scope > div');
+  
+  if (columns.length === 0) {
+    // No columns - check if row contains image content
+    const images = row.querySelectorAll('img, picture');
+    if (images.length > 0) {
+      // Has images - treat as image slide
+      const imageDiv = document.createElement('div');
+      imageDiv.classList.add('carousel-slide-image');
+      
+      // Move all content from row to the image div
+      while (row.firstChild) {
+        imageDiv.appendChild(row.firstChild);
+      }
+      
+      slide.append(imageDiv);
+    } else {
+      // No images - treat as content slide
+      const contentDiv = document.createElement('div');
+      contentDiv.classList.add('carousel-slide-content');
+      
+      // Move all content from row to the content div
+      while (row.firstChild) {
+        contentDiv.appendChild(row.firstChild);
+      }
+      
+      slide.append(contentDiv);
+    }
+  } else if (columns.length === 1) {
+    // Single column - check if it contains images
+    const column = columns[0];
+    const images = column.querySelectorAll('img, picture');
+    if (images.length > 0) {
+      column.classList.add('carousel-slide-image');
+    } else {
+      column.classList.add('carousel-slide-content');
+    }
+    slide.append(column);
   } else {
-    row.querySelectorAll(':scope > div').forEach((column, colIdx) => {
+    // Multiple columns - first is image, rest is content
+    columns.forEach((column, colIdx) => {
       column.classList.add(`carousel-slide-${colIdx === 0 ? 'image' : 'content'}`);
       slide.append(column);
     });
@@ -88,10 +124,7 @@ function createSlide(row, slideIndex, carouselId, isImageOnly = false) {
 
   const labeledBy = slide.querySelector('h1, h2, h3, h4, h5, h6');
   if (labeledBy) {
-    if (!labeledBy.id) {
-      labeledBy.id = `carousel-${carouselId}-label-${slideIndex}`;
-    }
-    slide.setAttribute('aria-labelledby', labeledBy.id);
+    slide.setAttribute('aria-labelledby', labeledBy.getAttribute('id'));
   }
 
   return slide;
@@ -101,8 +134,17 @@ let carouselId = 0;
 export default async function decorate(block) {
   carouselId += 1;
   block.setAttribute('id', `carousel-${carouselId}`);
-  const rows = block.querySelectorAll(':scope > div');
-  if (rows.length === 0) return;
+  
+  const allRows = block.querySelectorAll(':scope > div');
+  
+  // Skip the first row (carousel identifier) and get content rows
+  const contentRows = Array.from(allRows).slice(1);
+  const isSingleSlide = contentRows.length < 2;
+
+  // Remove the carousel identifier row (first row)
+  if (allRows.length > 0) {
+    allRows[0].remove();
+  }
 
   const placeholders = await fetchPlaceholders();
 
@@ -117,7 +159,7 @@ export default async function decorate(block) {
   block.prepend(slidesWrapper);
 
   let slideIndicators;
-  if (rows.length > 1) {
+  if (!isSingleSlide) {
     const slideIndicatorsNav = document.createElement('nav');
     slideIndicatorsNav.setAttribute('aria-label', placeholders.carouselSlideControls || 'Carousel Slide Controls');
     slideIndicators = document.createElement('ol');
@@ -135,41 +177,24 @@ export default async function decorate(block) {
     container.append(slideNavButtons);
   }
 
-  let slideCount = 0;
-
-  // If first row is a title → keep outside
-  const firstRow = rows[0];
-  if (firstRow.querySelector('h1, h2, h3, h4, h5, h6')) {
-    block.prepend(firstRow);
-  }
-
-  // Convert remaining rows to slides
-  rows.forEach((row, idx) => {
-    if (idx === 0 && row.querySelector('h1, h2, h3, h4, h5, h6')) return; // skip title row
-
-    // check if row is image-only → single <div> that contains a <picture>
-    const childDivs = row.querySelectorAll(':scope > div');
-    const isImageOnly = childDivs.length === 1 && childDivs[0].querySelector('picture');
-
-    const slide = createSlide(row, slideCount, carouselId, isImageOnly);
+  contentRows.forEach((row, idx) => {
+    const slide = createSlide(row, idx, carouselId);
     slidesWrapper.append(slide);
 
     if (slideIndicators) {
       const indicator = document.createElement('li');
       indicator.classList.add('carousel-slide-indicator');
-      indicator.dataset.targetSlide = slideCount;
-      indicator.innerHTML = `<button type="button" aria-label="${placeholders.showSlide || 'Show Slide'} ${slideCount + 1} ${placeholders.of || 'of'} ${rows.length - 1}"></button>`;
+      indicator.dataset.targetSlide = idx;
+      indicator.innerHTML = `<button type="button" aria-label="${placeholders.showSlide || 'Show Slide'} ${idx + 1} ${placeholders.of || 'of'} ${contentRows.length}"></button>`;
       slideIndicators.append(indicator);
     }
-
     row.remove();
-    slideCount += 1;
   });
 
   container.append(slidesWrapper);
   block.prepend(container);
 
-  if (slideCount > 1) {
+  if (!isSingleSlide) {
     bindEvents(block);
   }
 }

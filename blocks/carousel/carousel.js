@@ -70,20 +70,30 @@ function bindEvents(block) {
   });
 }
 
-function createSlide(row, slideIndex, carouselId) {
+function createSlide(row, slideIndex, carouselId, isImageOnly = false) {
   const slide = document.createElement('li');
   slide.dataset.slideIndex = slideIndex;
   slide.setAttribute('id', `carousel-${carouselId}-slide-${slideIndex}`);
   slide.classList.add('carousel-slide');
 
-  row.querySelectorAll(':scope > div').forEach((column, colIdx) => {
-    column.classList.add(`carousel-slide-${colIdx === 0 ? 'image' : 'content'}`);
-    slide.append(column);
-  });
+  if (isImageOnly) {
+    // row itself is an image slide
+    row.classList.add('carousel-slide-image');
+    slide.append(row);
+  } else {
+    // default multi-column layout
+    row.querySelectorAll(':scope > div').forEach((column, colIdx) => {
+      column.classList.add(`carousel-slide-${colIdx === 0 ? 'image' : 'content'}`);
+      slide.append(column);
+    });
+  }
 
   const labeledBy = slide.querySelector('h1, h2, h3, h4, h5, h6');
   if (labeledBy) {
-    slide.setAttribute('aria-labelledby', labeledBy.getAttribute('id'));
+    if (!labeledBy.id) {
+      labeledBy.id = `carousel-${carouselId}-label-${slideIndex}`;
+    }
+    slide.setAttribute('aria-labelledby', labeledBy.id);
   }
 
   return slide;
@@ -94,7 +104,7 @@ export default async function decorate(block) {
   carouselId += 1;
   block.setAttribute('id', `carousel-${carouselId}`);
   const rows = block.querySelectorAll(':scope > div');
-  const isSingleSlide = rows.length < 2;
+  if (rows.length === 0) return;
 
   const placeholders = await fetchPlaceholders();
 
@@ -109,7 +119,7 @@ export default async function decorate(block) {
   block.prepend(slidesWrapper);
 
   let slideIndicators;
-  if (!isSingleSlide) {
+  if (rows.length > 1) {
     const slideIndicatorsNav = document.createElement('nav');
     slideIndicatorsNav.setAttribute('aria-label', placeholders.carouselSlideControls || 'Carousel Slide Controls');
     slideIndicators = document.createElement('ol');
@@ -120,31 +130,48 @@ export default async function decorate(block) {
     const slideNavButtons = document.createElement('div');
     slideNavButtons.classList.add('carousel-navigation-buttons');
     slideNavButtons.innerHTML = `
-      <button type="button" class= "slide-prev" aria-label="${placeholders.previousSlide || 'Previous Slide'}"></button>
+      <button type="button" class="slide-prev" aria-label="${placeholders.previousSlide || 'Previous Slide'}"></button>
       <button type="button" class="slide-next" aria-label="${placeholders.nextSlide || 'Next Slide'}"></button>
     `;
 
     container.append(slideNavButtons);
   }
 
+  let slideCount = 0;
+
+  // Special handling: first row is a title
+  const firstRow = rows[0];
+  if (firstRow.querySelector('h1, h2, h3, h4, h5, h6')) {
+    block.prepend(firstRow); // keep title outside slides
+  }
+
+  // Remaining rows → slides
   rows.forEach((row, idx) => {
-    const slide = createSlide(row, idx, carouselId);
+    if (idx === 0 && row.querySelector('h1, h2, h3, h4, h5, h6')) return; // skip title row
+
+    // detect image-only row (single div containing <picture>)
+    const onlyChild = row.querySelector(':scope > div:only-child picture');
+    const isImageOnly = !!onlyChild;
+
+    const slide = createSlide(row, slideCount, carouselId, isImageOnly);
     slidesWrapper.append(slide);
 
     if (slideIndicators) {
       const indicator = document.createElement('li');
       indicator.classList.add('carousel-slide-indicator');
-      indicator.dataset.targetSlide = idx;
-      indicator.innerHTML = `<button type="button" aria-label="${placeholders.showSlide || 'Show Slide'} ${idx + 1} ${placeholders.of || 'of'} ${rows.length}"></button>`;
+      indicator.dataset.targetSlide = slideCount;
+      indicator.innerHTML = `<button type="button" aria-label="${placeholders.showSlide || 'Show Slide'} ${slideCount + 1} ${placeholders.of || 'of'} ${rows.length - 1}"></button>`;
       slideIndicators.append(indicator);
     }
+
     row.remove();
+    slideCount += 1;
   });
 
   container.append(slidesWrapper);
   block.prepend(container);
 
-  if (!isSingleSlide) {
+  if (slideCount > 1) {
     bindEvents(block);
   }
 }

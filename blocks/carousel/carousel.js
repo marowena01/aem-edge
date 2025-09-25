@@ -37,8 +37,11 @@ function showSlide(block, slideIndex = 0) {
     return;
   }
 
-  let realSlideIndex = slideIndex < 0 ? slides.length - 1 : slideIndex;
-  if (slideIndex >= slides.length) realSlideIndex = 0;
+  // Ensure slideIndex is a valid number
+  const validSlideIndex = isNaN(slideIndex) ? 0 : slideIndex;
+
+  let realSlideIndex = validSlideIndex < 0 ? slides.length - 1 : validSlideIndex;
+  if (validSlideIndex >= slides.length) realSlideIndex = 0;
   const activeSlide = slides[realSlideIndex];
 
   // Check if activeSlide exists before trying to use it
@@ -46,6 +49,9 @@ function showSlide(block, slideIndex = 0) {
     console.warn('Active slide not found at index:', realSlideIndex);
     return;
   }
+
+  // Update the active slide dataset
+  block.dataset.activeSlide = realSlideIndex;
 
   activeSlide.querySelectorAll('a').forEach((link) => link.removeAttribute('tabindex'));
 
@@ -66,7 +72,8 @@ function bindEvents(block) {
   slideIndicators.querySelectorAll('button').forEach((button) => {
     button.addEventListener('click', (e) => {
       const slideIndicator = e.currentTarget.parentElement;
-      showSlide(block, parseInt(slideIndicator.dataset.targetSlide, 10));
+      const targetSlide = parseInt(slideIndicator.dataset.targetSlide, 10);
+      showSlide(block, isNaN(targetSlide) ? 0 : targetSlide);
     });
   });
 
@@ -75,13 +82,17 @@ function bindEvents(block) {
 
   if (prevButton) {
     prevButton.addEventListener('click', () => {
-      showSlide(block, parseInt(block.dataset.activeSlide, 10) - 1);
+      const currentSlide = parseInt(block.dataset.activeSlide, 10);
+      const prevSlide = isNaN(currentSlide) ? 0 : currentSlide - 1;
+      showSlide(block, prevSlide);
     });
   }
 
   if (nextButton) {
     nextButton.addEventListener('click', () => {
-      showSlide(block, parseInt(block.dataset.activeSlide, 10) + 1);
+      const currentSlide = parseInt(block.dataset.activeSlide, 10);
+      const nextSlide = isNaN(currentSlide) ? 0 : currentSlide + 1;
+      showSlide(block, nextSlide);
     });
   }
 
@@ -90,6 +101,7 @@ function bindEvents(block) {
       if (entry.isIntersecting) updateActiveSlide(entry.target);
     });
   }, { threshold: 0.5 });
+
   block.querySelectorAll('.carousel-slide').forEach((slide) => {
     slideObserver.observe(slide);
   });
@@ -108,7 +120,7 @@ function createSlide(row, slideIndex, carouselId) {
     const imageColumn = columns[0];
     imageColumn.classList.add('carousel-slide-image');
     slide.append(imageColumn);
-
+ 
     // Add a class to identify image-only slides for styling
     slide.classList.add('carousel-slide-image-only');
   } else if (columns.length >= 2) {
@@ -192,7 +204,12 @@ export default async function decorate(block) {
   container.append(slidesWrapper);
   block.prepend(container);
 
+  // Initialize the active slide to 0
+  block.dataset.activeSlide = 0;
+
   if (!isSingleSlide) {
     bindEvents(block);
+    // Show the first slide initially
+    showSlide(block, 0);
   }
 }

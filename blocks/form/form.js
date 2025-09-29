@@ -18,7 +18,7 @@ async function createForm(formHref, submitHref) {
   // group fields into fieldsets
   const fieldsets = form.querySelectorAll('fieldset');
   fieldsets.forEach((fieldset) => {
-    form.querySelectorAll(`[data-fieldset="${fieldset.name}"`).forEach((field) => {
+    form.querySelectorAll(`[data-fieldset="${fieldset.name}"]`).forEach((field) => {
       fieldset.append(field);
     });
   });
@@ -55,7 +55,7 @@ async function handleSubmit(form) {
     const payload = generatePayload(form);
     const response = await fetch(form.dataset.action, {
       method: 'POST',
-      body: JSON.stringify({ data: payload }),
+      body: JSON.stringify({ payload }),
       headers: {
         'Content-Type': 'application/json',
       },

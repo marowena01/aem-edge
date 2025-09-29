@@ -1,113 +1,95 @@
-import createField from './form-fields.js';
-
-async function createForm(formHref, submitHref) {
-  const { pathname } = new URL(formHref);
-  const resp = await fetch(pathname);
-  const json = await resp.json();
-
-  const form = document.createElement('form');
-  form.dataset.action = submitHref;
-
-  // build fields
-  const fields = await Promise.all(json.data.map((fd) => createField(fd, form)));
-  fields.forEach((field) => {
-    if (field) {
-      form.append(field);
-    }
-  });
-
-  // group fields into fieldsets
-  const fieldsets = form.querySelectorAll('fieldset');
-  fieldsets.forEach((fieldset) => {
-    form.querySelectorAll(`[data-fieldset="${fieldset.name}"]`).forEach((field) => {
-      fieldset.append(field);
-    });
-  });
-
-  return form;
-}
-
-// flatten payload correctly
-function generatePayload(form) {
-  const payload = {};
-
-  [...form.elements].forEach((field) => {
-    if (field.name && field.type !== 'submit' && !field.disabled) {
-      if (field.type === 'radio') {
-        if (field.checked) payload[field.name] = field.value;
-      } else if (field.type === 'checkbox') {
-        if (field.checked) {
-          payload[field.name] = payload[field.name]
-            ? `${payload[field.name]},${field.value}`
-            : field.value;
-        }
-      } else {
-        payload[field.name] = field.value;
-      }
-    }
-  });
-
-  return payload;
-}
-
-async function handleSubmit(form) {
-  if (form.getAttribute('data-submitting') === 'true') return;
-
-  const submit = form.querySelector('button[type="submit"]');
+async function loadForms() {
   try {
-    form.setAttribute('data-submitting', 'true');
-    submit.disabled = true;
+    // This is the JSON generated from your Google Docs table
+    const res = await fetch('/form.json');
+    const forms = await res.json();
 
-    // create payload
-    const payload = generatePayload(form);
-    console.log('Sending payload:', payload); // Debug log
+    // Loop each row in the table
+    for (const row of forms.data) {
+      const formUrl = row.Form;   // col1 = JSON definition
+      const submitUrl = row.Submit; // col2 = Apps Script endpoint
 
-    const response = await fetch(form.dataset.action, {
-      method: 'POST',
-      body: JSON.stringify({ data: payload }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+      if (!formUrl) continue;
 
-    if (response.ok) {
-      console.log('Submission success');
-      if (form.dataset.confirmation) {
-        window.location.href = form.dataset.confirmation;
-      }
-    } else {
-      const error = await response.text();
-      throw new Error(error);
+      // Fetch the form definition JSON
+      const formRes = await fetch(formUrl);
+      const formDef = await formRes.json();
+
+      // Render the form
+      renderForm(formDef, submitUrl);
     }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('❌ Submission error:', e);
-  } finally {
-    form.setAttribute('data-submitting', 'false');
-    submit.disabled = false;
+  } catch (err) {
+    console.error('❌ Error loading forms:', err);
   }
 }
 
-export default async function decorate(block) {
-  const links = [...block.querySelectorAll('a')].map((a) => a.href);
-  const formLink = links.find((link) => link.startsWith(window.location.origin) && link.endsWith('.json'));
-  const submitLink = links.find((link) => link !== formLink);
-  if (!formLink || !submitLink) return;
+function renderForm(formDef, submitUrl) {
+  const formEl = document.createElement('form');
+  formEl.method = 'POST';
+  formEl.action = submitUrl || 'https://httpbin.org/post';
 
-  const form = await createForm(formLink, submitLink);
-  block.replaceChildren(form);
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const valid = form.checkValidity();
-    if (valid) {
-      handleSubmit(form);
-    } else {
-      const firstInvalidEl = form.querySelector(':invalid:not(fieldset)');
-      if (firstInvalidEl) {
-        firstInvalidEl.focus();
-        firstInvalidEl.scrollIntoView({ behavior: 'smooth' });
-      }
+  formDef.data.forEach((field) => {
+    if (field.Type === 'heading') {
+      const h = document.createElement('h3');
+      h.textContent = field.Label;
+      formEl.appendChild(h);
+    } else if (field.Type === 'plaintext') {
+      const p = document.createElement('p');
+      p.textContent = field.Label;
+      formEl.appendChild(p);
+    } else if (field.Type === 'text' || field.Type === 'email') {
+      const input = document.createElement('input');
+      input.type = field.Type;
+      input.name = field.Name;
+      input.placeholder = field.Placeholder || '';
+      formEl.appendChild(input);
+    } else if (field.Type === 'radio') {
+      const label = document.createElement('label');
+      label.textContent = field.Label;
+      formEl.appendChild(label);
+      (field.Options || '').split(',').forEach((opt) => {
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = field.Name;
+        radio.value = opt.trim();
+        formEl.appendChild(radio);
+        formEl.appendChild(document.createTextNode(opt.trim()));
+      });
+    } else if (field.Type === 'submit') {
+      const btn = document.createElement('button');
+      btn.type = 'submit';
+      btn.textContent = field.Label || 'Submit';
+      formEl.appendChild(btn);
     }
   });
+
+  // Handle submission with fetch (avoid page reload + allow JSON)
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(formEl);
+    const json = {};
+
+    formData.forEach((value, key) => {
+      json[key] = value;
+    });
+
+    try {
+      const resp = await fetch(formEl.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: json }),
+      });
+      const result = await resp.json();
+      console.log('✅ Submitted:', result);
+      alert('Form submitted successfully!');
+    } catch (err) {
+      console.error('❌ Submission error:', err);
+      alert('Submission failed. Check console for details.');
+    }
+  });
+
+  document.body.appendChild(formEl);
 }
+
+// Kick things off
+loadForms();

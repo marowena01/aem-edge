@@ -85,15 +85,18 @@ const createSelect = async (fd) => {
   if (fd.Options) {
     let options = [];
     if (fd.Options.startsWith('https://')) {
-      const optionsUrl = new URL(fd.Options);
-      const resp = await fetch(`${optionsUrl.pathname}${optionsUrl.search}`);
-      const json = await resp.json();
-      json.data.forEach((opt) => {
-        options.push({
-          text: opt.Option,
-          value: opt.Value || opt.Option,
+      const resp = await fetch(fd.Options); // keep full URL
+      if (!resp.ok) {
+        console.error(`Failed to fetch options: ${resp.statusText}`);
+      } else {
+        const json = await resp.json();
+        json.data.forEach((opt) => {
+          options.push({
+            text: opt.Option,
+            value: opt.Value || opt.Option,
+          });
         });
-      });
+      }
     } else {
       options = fd.Options.split(',').map((opt) => ({
         text: opt.trim(),

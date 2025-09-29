@@ -2,7 +2,7 @@ import createField from './form-fields.js';
 
 async function submitForm(form) {
   const payload = { data: {} };
-  
+
   // Collect form data
   const formData = new FormData(form);
   formData.forEach((value, key) => {
@@ -17,7 +17,7 @@ async function submitForm(form) {
     });
 
     const result = await resp.json();
-    
+
     if (result.status === 'ok') {
       // Success - redirect or show message
       if (form.dataset.confirmation) {
@@ -38,7 +38,7 @@ async function submitForm(form) {
     errorMsg.className = 'form-error';
     errorMsg.innerHTML = '<p>❌ Submission failed. Please try again.</p>';
     form.appendChild(errorMsg);
-    
+
     // Remove error after 5 seconds
     setTimeout(() => errorMsg.remove(), 5000);
   }
@@ -47,9 +47,9 @@ async function submitForm(form) {
 async function createForm(formDef) {
   const form = document.createElement('form');
   form.dataset.action = formDef.submitUrl;
-  
+
   const fields = formDef.data || [];
-  
+
   // Group fields by fieldset
   const fieldsets = {};
   fields.forEach((fd) => {
@@ -63,7 +63,7 @@ async function createForm(formDef) {
   // Create fields
   await Promise.all(Object.entries(fieldsets).map(async ([fieldsetName, fieldsetFields]) => {
     let fieldsetEl = form;
-    
+
     if (fieldsetName !== 'default') {
       const fieldsetWrapper = await createField({
         Type: 'fieldset',
@@ -89,11 +89,11 @@ async function createForm(formDef) {
   // Handle form submission
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    
+
     // Basic validation
     const requiredFields = form.querySelectorAll('[required]');
     let isValid = true;
-    
+
     requiredFields.forEach((field) => {
       if (!field.value.trim()) {
         isValid = false;
@@ -120,8 +120,7 @@ export default async function decorate(block) {
   }
 
   const formPath = formLink.href;
-  const submitLink = block.querySelector('a[href*="script.google.com"]') || 
-                     block.querySelector('a[href*="exec"]');
+  const submitLink = block.querySelector('a[href*="script.google.com"]') || block.querySelector('a[href*="exec"]');
   const submitUrl = submitLink ? submitLink.href : null;
 
   if (!submitUrl) {
@@ -137,17 +136,17 @@ export default async function decorate(block) {
     if (!resp.ok) {
       throw new Error(`Failed to load form: ${resp.status}`);
     }
-    
+
     const json = await resp.json();
-    
+
     // Validate JSON structure
     if (!json.data || !Array.isArray(json.data)) {
       throw new Error('Invalid form definition: missing data array');
     }
-    
+
     const formDef = {
       data: json.data,
-      submitUrl: submitUrl,
+      submitUrl,
     };
 
     const form = await createForm(formDef);

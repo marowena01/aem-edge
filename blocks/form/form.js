@@ -1,91 +1,159 @@
-async function renderForm(formDef, submitUrl) {
-  const formEl = document.createElement('form');
-  formEl.method = 'POST';
-  formEl.action = submitUrl || 'https://httpbin.org/post';
+import createField from './form-fields.js';
 
-  formDef.data.forEach((field) => {
-    if (field.Type === 'heading') {
-      const h = document.createElement('h3');
-      h.textContent = field.Label;
-      formEl.appendChild(h);
-    } else if (field.Type === 'plaintext') {
-      const p = document.createElement('p');
-      p.textContent = field.Label;
-      formEl.appendChild(p);
-    } else if (field.Type === 'text' || field.Type === 'email') {
-      const input = document.createElement('input');
-      input.type = field.Type;
-      input.name = field.Name;
-      input.placeholder = field.Placeholder || '';
-      formEl.appendChild(input);
-    } else if (field.Type === 'radio') {
-      const label = document.createElement('label');
-      label.textContent = field.Label;
-      formEl.appendChild(label);
-      (field.Options || '').split(',').forEach((opt) => {
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = field.Name;
-        radio.value = opt.trim();
-        formEl.appendChild(radio);
-        formEl.appendChild(document.createTextNode(opt.trim()));
-      });
-    } else if (field.Type === 'submit') {
-      const btn = document.createElement('button');
-      btn.type = 'submit';
-      btn.textContent = field.Label || 'Submit';
-      formEl.appendChild(btn);
-    }
+async function submitForm(form) {
+  const payload = { data: {} };
+  
+  // Collect form data
+  const formData = new FormData(form);
+  formData.forEach((value, key) => {
+    payload.data[key] = value;
   });
 
-  formEl.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(formEl);
-    const json = {};
-    formData.forEach((value, key) => { json[key] = value; });
-
-    try {
-      const resp = await fetch(formEl.action, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: json }),
-      });
-      await resp.json();
-      const msg = document.createElement('p');
-      msg.textContent = '✅ Form submitted successfully!';
-      formEl.appendChild(msg);
-    } catch (err) {
-      const msg = document.createElement('p');
-      msg.textContent = '❌ Submission failed. Please try again.';
-      formEl.appendChild(msg);
-    }
-  });
-
-  document.body.appendChild(formEl);
-}
-
-async function loadForms() {
   try {
-    const res = await fetch('/form.json');
-    const forms = await res.json();
+    const resp = await fetch(form.dataset.action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-    const defs = await Promise.all(
-      forms.data
-        .filter((row) => row.Form)
-        .map(async (row) => {
-          const formRes = await fetch(row.Form);
-          const formDef = await formRes.json();
-          return { def: formDef, submit: row.Submit };
-        }),
-    );
-
-    defs.forEach(({ def, submit }) => renderForm(def, submit));
+    const result = await resp.json();
+    
+    if (result.status === 'ok') {
+      // Success - redirect or show message
+      if (form.dataset.confirmation) {
+        window.location.href = form.dataset.confirmation;
+      } else {
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.className = 'form-success';
+        successMsg.innerHTML = '<p>✅ Form submitted successfully!</p>';
+        form.replaceWith(successMsg);
+      }
+    } else {
+      throw new Error('Submission failed');
+    }
   } catch (err) {
-    // handle gracefully instead of console.error
-    const msg = document.createElement('p');
-    msg.textContent = '❌ Could not load forms.';
-    document.body.appendChild(msg);
+    // Show error message
+    const errorMsg = document.createElement('div');
+    errorMsg.className = 'form-error';
+    errorMsg.innerHTML = '<p>❌ Submission failed. Please try again.</p>';
+    form.appendChild(errorMsg);
+    
+    // Remove error after 5 seconds
+    setTimeout(() => errorMsg.remove(), 5000);
   }
 }
 
-loadForms();
+async function createForm(formDef) {
+  const form = document.createElement('form');
+  form.dataset.action = formDef.submitUrl;
+  
+  const fields = formDef.data || [];
+  
+  // Group fields by fieldset
+  const fieldsets = {};
+  fields.forEach((fd) => {
+    const fieldsetName = fd.Fieldset || 'default';
+    if (!fieldsets[fieldsetName]) {
+      fieldsets[fieldsetName] = [];
+    }
+    fieldsets[fieldsetName].push(fd);
+  });
+
+  // Create fields
+  await Promise.all(Object.entries(fieldsets).map(async ([fieldsetName, fieldsetFields]) => {
+    let fieldsetEl = form;
+    
+    if (fieldsetName !== 'default') {
+      const fieldsetWrapper = await createField({
+        Type: 'fieldset',
+        Name: fieldsetName,
+        Label: fieldsetName,
+      }, form);
+      form.append(fieldsetWrapper);
+      fieldsetEl = fieldsetWrapper.querySelector('fieldset');
+    }
+
+    await Promise.all(fieldsetFields.map(async (fd) => {
+      try {
+        const fieldWrapper = await createField(fd, form);
+        if (fieldWrapper) {
+          fieldsetEl.append(fieldWrapper);
+        }
+      } catch (err) {
+        console.error('Error creating field:', fd, err);
+      }
+    }));
+  }));
+
+  // Handle form submission
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    const requiredFields = form.querySelectorAll('[required]');
+    let isValid = true;
+    
+    requiredFields.forEach((field) => {
+      if (!field.value.trim()) {
+        isValid = false;
+        field.classList.add('error');
+      } else {
+        field.classList.remove('error');
+      }
+    });
+
+    if (isValid) {
+      submitForm(form);
+    }
+  });
+
+  return form;
+}
+
+export default async function decorate(block) {
+  // Get form reference from block
+  const formLink = block.querySelector('a[href$=".json"]');
+  if (!formLink) {
+    console.error('No form JSON link found in block');
+    return;
+  }
+
+  const formPath = formLink.href;
+  const submitLink = block.querySelector('a[href*="script.google.com"]') || 
+                     block.querySelector('a[href*="exec"]');
+  const submitUrl = submitLink ? submitLink.href : null;
+
+  if (!submitUrl) {
+    console.error('No submit URL found in block');
+    block.innerHTML = '<p class="form-error">Form configuration error: Missing submit URL</p>';
+    return;
+  }
+
+  block.innerHTML = '';
+
+  try {
+    const resp = await fetch(formPath);
+    if (!resp.ok) {
+      throw new Error(`Failed to load form: ${resp.status}`);
+    }
+    
+    const json = await resp.json();
+    
+    // Validate JSON structure
+    if (!json.data || !Array.isArray(json.data)) {
+      throw new Error('Invalid form definition: missing data array');
+    }
+    
+    const formDef = {
+      data: json.data,
+      submitUrl: submitUrl,
+    };
+
+    const form = await createForm(formDef);
+    block.append(form);
+  } catch (err) {
+    console.error('Error loading form:', err);
+    block.innerHTML = '<p class="form-error">Unable to load form. Please try again later.</p>';
+  }
+}

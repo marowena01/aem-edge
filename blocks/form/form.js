@@ -1,29 +1,4 @@
-async function loadForms() {
-  try {
-    // This is the JSON generated from your Google Docs table
-    const res = await fetch('/form.json');
-    const forms = await res.json();
-
-    // Loop each row in the table
-    for (const row of forms.data) {
-      const formUrl = row.Form;   // col1 = JSON definition
-      const submitUrl = row.Submit; // col2 = Apps Script endpoint
-
-      if (!formUrl) continue;
-
-      // Fetch the form definition JSON
-      const formRes = await fetch(formUrl);
-      const formDef = await formRes.json();
-
-      // Render the form
-      renderForm(formDef, submitUrl);
-    }
-  } catch (err) {
-    console.error('❌ Error loading forms:', err);
-  }
-}
-
-function renderForm(formDef, submitUrl) {
+async function renderForm(formDef, submitUrl) {
   const formEl = document.createElement('form');
   formEl.method = 'POST';
   formEl.action = submitUrl || 'https://httpbin.org/post';
@@ -63,15 +38,11 @@ function renderForm(formDef, submitUrl) {
     }
   });
 
-  // Handle submission with fetch (avoid page reload + allow JSON)
   formEl.addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(formEl);
     const json = {};
-
-    formData.forEach((value, key) => {
-      json[key] = value;
-    });
+    formData.forEach((value, key) => { json[key] = value; });
 
     try {
       const resp = await fetch(formEl.action, {
@@ -79,17 +50,42 @@ function renderForm(formDef, submitUrl) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: json }),
       });
-      const result = await resp.json();
-      console.log('✅ Submitted:', result);
-      alert('Form submitted successfully!');
+      await resp.json();
+      const msg = document.createElement('p');
+      msg.textContent = '✅ Form submitted successfully!';
+      formEl.appendChild(msg);
     } catch (err) {
-      console.error('❌ Submission error:', err);
-      alert('Submission failed. Check console for details.');
+      const msg = document.createElement('p');
+      msg.textContent = '❌ Submission failed. Please try again.';
+      formEl.appendChild(msg);
     }
   });
 
   document.body.appendChild(formEl);
 }
 
-// Kick things off
+async function loadForms() {
+  try {
+    const res = await fetch('/form.json');
+    const forms = await res.json();
+
+    const defs = await Promise.all(
+      forms.data
+        .filter((row) => row.Form)
+        .map(async (row) => {
+          const formRes = await fetch(row.Form);
+          const formDef = await formRes.json();
+          return { def: formDef, submit: row.Submit };
+        })
+    );
+
+    defs.forEach(({ def, submit }) => renderForm(def, submit));
+  } catch (err) {
+    // handle gracefully instead of console.error
+    const msg = document.createElement('p');
+    msg.textContent = '❌ Could not load forms.';
+    document.body.appendChild(msg);
+  }
+}
+
 loadForms();

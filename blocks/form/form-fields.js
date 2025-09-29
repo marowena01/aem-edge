@@ -24,7 +24,7 @@ function createLabel(fd) {
   label.id = generateFieldId(fd, '-label');
   label.textContent = fd.Label || fd.Name;
   label.setAttribute('for', fd.Id);
-  if (fd.Mandatory.toLowerCase() === 'true' || fd.Mandatory.toLowerCase() === 'x') {
+  if (fd.Mandatory && (fd.Mandatory.toLowerCase() === 'true' || fd.Mandatory.toLowerCase() === 'x')) {
     label.dataset.required = true;
   }
   return label;
@@ -34,8 +34,8 @@ function setCommonAttributes(field, fd) {
   field.id = fd.Id;
   field.name = fd.Name;
   field.required = fd.Mandatory && (fd.Mandatory.toLowerCase() === 'true' || fd.Mandatory.toLowerCase() === 'x');
-  field.placeholder = fd.Placeholder;
-  field.value = fd.Value;
+  if (fd.Placeholder) field.placeholder = fd.Placeholder;
+  if (fd.Value) field.value = fd.Value;
 }
 
 const createHeading = (fd) => {
@@ -112,8 +112,8 @@ const createSelect = async (fd) => {
 };
 
 const createConfirmation = (fd, form) => {
-  form.dataset.confirmation = new URL(fd.Value).pathname;
-
+  // ✅ keep the full URL, don’t trim to pathname
+  form.dataset.confirmation = fd.Value;
   return {};
 };
 
@@ -178,7 +178,7 @@ const createFieldset = (fd) => {
 const createToggle = (fd) => {
   const { field, fieldWrapper } = createInput(fd);
   field.type = 'checkbox';
-  if (!field.value) field.value = 'on';
+  if (!field.value) field.value = fd.Value || 'true';
   field.classList.add('toggle');
   fieldWrapper.classList.add('selection-wrapper');
 
@@ -199,7 +199,8 @@ const createToggle = (fd) => {
 
 const createCheckbox = (fd) => {
   const { field, fieldWrapper } = createInput(fd);
-  if (!field.value) field.value = 'checked';
+  // ✅ use fd.Value or fd.Label as fallback
+  if (!field.value) field.value = fd.Value || fd.Label || 'true';
   fieldWrapper.classList.add('selection-wrapper');
 
   return { field, fieldWrapper };
@@ -207,7 +208,8 @@ const createCheckbox = (fd) => {
 
 const createRadio = (fd) => {
   const { field, fieldWrapper } = createInput(fd);
-  if (!field.value) field.value = fd.Label || 'on';
+  // ✅ use fd.Value or fd.Label as fallback
+  if (!field.value) field.value = fd.Value || fd.Label || 'true';
   fieldWrapper.classList.add('selection-wrapper');
 
   return { field, fieldWrapper };

@@ -10,10 +10,12 @@ async function submitForm(form) {
   });
 
   try {
+    // Try POST with JSON first
     const resp = await fetch(form.dataset.action, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      mode: 'cors',
     });
 
     const result = await resp.json();
@@ -33,10 +35,14 @@ async function submitForm(form) {
       throw new Error('Submission failed');
     }
   } catch (err) {
+    console.error('Form submission error:', err);
     // Show error message
     const errorMsg = document.createElement('div');
     errorMsg.className = 'form-error';
     errorMsg.innerHTML = '<p>❌ Submission failed. Please try again.</p>';
+
+    // Remove any existing error messages
+    form.querySelectorAll('.form-error').forEach(el => el.remove());
     form.appendChild(errorMsg);
 
     // Remove error after 5 seconds

@@ -42,7 +42,7 @@ async function submitForm(form) {
     errorMsg.innerHTML = '<p>❌ Submission failed. Please try again.</p>';
 
     // Remove any existing error messages
-    form.querySelectorAll('.form-error').forEach(el => el.remove());
+    form.querySelectorAll('.form-error').forEach((el) => el.remove());
     form.appendChild(errorMsg);
 
     // Remove error after 5 seconds

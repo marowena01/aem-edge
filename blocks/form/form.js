@@ -75,8 +75,8 @@ async function loadForms() {
         .map(async (row) => {
           const formRes = await fetch(row.Form);
           const formDef = await formRes.json();
-          return { def: formDef, submit: row.Submit, };
-        })
+          return { def: formDef, submit: row.Submit };
+        }),
     );
 
     defs.forEach(({ def, submit }) => renderForm(def, submit));

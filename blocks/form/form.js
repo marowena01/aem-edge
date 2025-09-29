@@ -1,21 +1,21 @@
 import createField from './form-fields.js';
 
 async function submitForm(form) {
-  const payload = { data: {} };
-
   // Collect form data
   const formData = new FormData(form);
+  const data = {};
   formData.forEach((value, key) => {
-    payload.data[key] = value;
+    data[key] = value;
   });
 
   try {
-    // Try POST with JSON first
-    const resp = await fetch(form.dataset.action, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      mode: 'cors',
+    // Build URL with query parameters (works better with Google Apps Script)
+    const params = new URLSearchParams(data);
+    const url = `${form.dataset.action}?${params.toString()}`;
+
+    const resp = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
     });
 
     const result = await resp.json();

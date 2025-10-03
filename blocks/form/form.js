@@ -1,51 +1,34 @@
 import createField from './form-fields.js';
 
 async function submitForm(form) {
-  // Collect form data
   const formData = new FormData(form);
   const data = {};
-  formData.forEach((value, key) => {
-    data[key] = value;
-  });
+  formData.forEach((value, key) => { data[key] = value; });
 
   try {
-    // Send as JSON via POST
     const resp = await fetch(form.dataset.action, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      method: "POST",
       body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" },
     });
 
-    const result = await resp.json();
+    const text = await resp.text();   // get text (since HtmlService returns text/html)
+    const result = JSON.parse(text);  // parse JSON inside
 
     if (result.success) {
-      // Success - redirect or show message
-      if (form.dataset.confirmation) {
-        window.location.href = form.dataset.confirmation;
-      } else {
-        // Show success message
-        const successMsg = document.createElement('div');
-        successMsg.className = 'form-success';
-        successMsg.innerHTML = '<p>✅ Form submitted successfully!</p>';
-        form.replaceWith(successMsg);
-      }
+      const successMsg = document.createElement("div");
+      successMsg.className = "form-success";
+      successMsg.innerHTML = "<p>✅ Form submitted successfully!</p>";
+      form.replaceWith(successMsg);
     } else {
-      throw new Error(result.error || 'Submission failed');
+      throw new Error(result.error || "Submission failed");
     }
   } catch (err) {
-    console.error('Form submission error:', err);
-    // Show error message
-    const errorMsg = document.createElement('div');
-    errorMsg.className = 'form-error';
-    errorMsg.innerHTML = '<p>❌ Submission failed. Please try again.</p>';
-
-    // Remove any existing error messages
-    form.querySelectorAll('.form-error').forEach((el) => el.remove());
+    console.error("Form submission error:", err);
+    const errorMsg = document.createElement("div");
+    errorMsg.className = "form-error";
+    errorMsg.innerHTML = "<p>❌ Submission failed. Please try again.</p>";
     form.appendChild(errorMsg);
-
-    // Remove error after 5 seconds
     setTimeout(() => errorMsg.remove(), 5000);
   }
 }

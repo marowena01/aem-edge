@@ -9,18 +9,18 @@ async function submitForm(form) {
   });
 
   try {
-    // Build URL with query parameters (works better with Google Apps Script)
-    const params = new URLSearchParams(data);
-    const url = `${form.dataset.action}?${params.toString()}`;
-
-    const resp = await fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
+    // Send as JSON via POST
+    const resp = await fetch(form.dataset.action, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
     });
 
     const result = await resp.json();
 
-    if (result.status === 'ok') {
+    if (result.success) {
       // Success - redirect or show message
       if (form.dataset.confirmation) {
         window.location.href = form.dataset.confirmation;
@@ -32,7 +32,7 @@ async function submitForm(form) {
         form.replaceWith(successMsg);
       }
     } else {
-      throw new Error('Submission failed');
+      throw new Error(result.error || 'Submission failed');
     }
   } catch (err) {
     console.error('Form submission error:', err);

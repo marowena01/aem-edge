@@ -2,18 +2,14 @@ import createField from './form-fields.js';
 
 async function submitForm(form) {
   const formData = new FormData(form);
-  const data = {};
-  formData.forEach((value, key) => { data[key] = value; });
 
   try {
     const resp = await fetch(form.dataset.action, {
       method: 'POST',
-      body: JSON.stringify(data),
-      headers: { 'Content-Type': 'application/json' },
+      body: formData
     });
 
-    const text = await resp.text();
-    const result = JSON.parse(text);
+    const result = await resp.json();
 
     if (result.success) {
       const successMsg = document.createElement('div');

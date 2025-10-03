@@ -7,27 +7,27 @@ async function submitForm(form) {
 
   try {
     const resp = await fetch(form.dataset.action, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(data),
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
 
-    const text = await resp.text();   // get text (since HtmlService returns text/html)
-    const result = JSON.parse(text);  // parse JSON inside
+    const text = await resp.text();
+    const result = JSON.parse(text);
 
     if (result.success) {
-      const successMsg = document.createElement("div");
-      successMsg.className = "form-success";
-      successMsg.innerHTML = "<p>✅ Form submitted successfully!</p>";
+      const successMsg = document.createElement('div');
+      successMsg.className = 'form-success';
+      successMsg.innerHTML = '<p>✅ Form submitted successfully!</p>';
       form.replaceWith(successMsg);
     } else {
-      throw new Error(result.error || "Submission failed");
+      throw new Error(result.error || 'Submission failed');
     }
   } catch (err) {
-    console.error("Form submission error:", err);
-    const errorMsg = document.createElement("div");
-    errorMsg.className = "form-error";
-    errorMsg.innerHTML = "<p>❌ Submission failed. Please try again.</p>";
+    console.error('Form submission error:', err);
+    const errorMsg = document.createElement('div');
+    errorMsg.className = 'form-error';
+    errorMsg.innerHTML = '<p>❌ Submission failed. Please try again.</p>';
     form.appendChild(errorMsg);
     setTimeout(() => errorMsg.remove(), 5000);
   }

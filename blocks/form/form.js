@@ -3,27 +3,37 @@ import createField from './form-fields.js';
 async function submitForm(form) {
   const formData = new FormData(form);
 
+  // Convert FormData to JSON
+  const data = {};
+  formData.forEach((value, key) => {
+    data[key] = value;
+  });
+
   try {
-    const resp = await fetch(form.dataset.action, {
+    // Use the form's action attribute or default to sheet submission endpoint
+    const submitUrl = form.action || '/.submit';
+
+    const resp = await fetch(submitUrl, {
       method: 'POST',
-      body: formData
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ data }),
     });
 
-    const result = await resp.json();
-
-    if (result.success) {
+    if (resp.ok) {
       const successMsg = document.createElement('div');
       successMsg.className = 'form-success';
-      successMsg.innerHTML = '<p>✅ Form submitted successfully!</p>';
+      successMsg.innerHTML = '<p>Thank you! Your submission has been received.</p>';
       form.replaceWith(successMsg);
     } else {
-      throw new Error(result.error || 'Submission failed');
+      throw new Error('Submission failed');
     }
   } catch (err) {
     console.error('Form submission error:', err);
     const errorMsg = document.createElement('div');
     errorMsg.className = 'form-error';
-    errorMsg.innerHTML = '<p>❌ Submission failed. Please try again.</p>';
+    errorMsg.innerHTML = '<p>Submission failed. Please try again.</p>';
     form.appendChild(errorMsg);
     setTimeout(() => errorMsg.remove(), 5000);
   }
@@ -31,7 +41,11 @@ async function submitForm(form) {
 
 async function createForm(formDef) {
   const form = document.createElement('form');
-  form.dataset.action = formDef.submitUrl;
+
+  // Set form action from definition or use default
+  if (formDef.submitUrl) {
+    form.action = formDef.submitUrl;
+  }
 
   const fields = formDef.data || [];
 
@@ -105,14 +119,6 @@ export default async function decorate(block) {
   }
 
   const formPath = formLink.href;
-  const submitLink = block.querySelector('a[href*="script.google.com"]') || block.querySelector('a[href*="exec"]');
-  const submitUrl = submitLink ? submitLink.href : null;
-
-  if (!submitUrl) {
-    console.error('No submit URL found in block');
-    block.innerHTML = '<p class="form-error">Form configuration error: Missing submit URL</p>';
-    return;
-  }
 
   block.innerHTML = '';
 
@@ -129,8 +135,25 @@ export default async function decorate(block) {
       throw new Error('Invalid form definition: missing data array');
     }
 
+    // Check if form has :type = sheet configuration
+    const submitConfig = json.data.find(item => item.Name === ':type');
+    const sheetConfig = json.data.find(item => item.Name === ':sheet');
+
+    let submitUrl = null;
+
+    if (submitConfig && submitConfig.Value === 'sheet') {
+      // Use AEM Forms Submission Service
+      // The service will handle submission to the sheet specified in :sheet
+      submitUrl = '/.submit';
+    } else {
+      // Look for custom submit URL in the block
+      const submitLink = block.querySelector('a[href*="script.google.com"]') ||
+                        block.querySelector('a[href*="exec"]');
+      submitUrl = submitLink ? submitLink.href : '/.submit';
+    }
+
     const formDef = {
-      data: json.data,
+      data: json.data.filter(item => !item.Name.startsWith(':')), // Filter out config rows
       submitUrl,
     };
 

@@ -1,62 +1,54 @@
 import createField from './form-fields.js';
 
-export default async function decorate(block) {
-  const formLink = block.querySelector('a[href$=".json"]');
-  if (!formLink) {
-    console.error('No form JSON link found in block');
-    return;
-  }
+async function submitForm(form) {
+  const formData = new FormData(form);
 
-  const formPath = formLink.href;
-
-  // Look for the Apps Script submit URL
-  const submitLink = block.querySelector('a[href*="script.google.com"]');
-  const submitUrl = submitLink ? submitLink.href : null;
-
-  if (!submitUrl) {
-    console.error('No submit URL found');
-    block.innerHTML = '<p class="form-error">Form configuration error: Missing submit URL</p>';
-    return;
-  }
-
-  block.innerHTML = '';
+  const data = {};
+  formData.forEach((value, key) => {
+    data[key] = value;
+  });
 
   try {
-    const resp = await fetch(formPath);
-    if (!resp.ok) {
-      throw new Error(`Failed to load form: ${resp.status}`);
+    const submitUrl = form.action;
+
+    const resp = await fetch(submitUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: JSON.stringify({ data }),
+    });
+
+    const text = await resp.text();
+    const result = JSON.parse(text);
+
+    if (result.success) {
+      const successMsg = document.createElement('div');
+      successMsg.className = 'form-success';
+      successMsg.innerHTML = '<p>Thank you! Your submission has been received.</p>';
+      form.replaceWith(successMsg);
+    } else {
+      throw new Error(result.error || 'Submission failed');
     }
-
-    const json = await resp.json();
-
-    if (!json.data || !Array.isArray(json.data)) {
-      throw new Error('Invalid form definition: missing data array');
-    }
-
-    const formDef = {
-      data: json.data,
-      submitUrl,
-    };
-
-    const form = await createForm(formDef);
-    block.append(form);
   } catch (err) {
-    console.error('Error loading form:', err);
-    block.innerHTML = '<p class="form-error">Unable to load form. Please try again later.</p>';
+    console.error('Form submission error:', err);
+    const errorMsg = document.createElement('div');
+    errorMsg.className = 'form-error';
+    errorMsg.innerHTML = '<p>Submission failed. Please try again.</p>';
+    form.appendChild(errorMsg);
+    setTimeout(() => errorMsg.remove(), 5000);
   }
 }
 
 async function createForm(formDef) {
   const form = document.createElement('form');
 
-  // Set form action from definition or use default
   if (formDef.submitUrl) {
     form.action = formDef.submitUrl;
   }
 
   const fields = formDef.data || [];
 
-  // Group fields by fieldset
   const fieldsets = {};
   fields.forEach((fd) => {
     const fieldsetName = fd.Fieldset || 'default';
@@ -66,7 +58,6 @@ async function createForm(formDef) {
     fieldsets[fieldsetName].push(fd);
   });
 
-  // Create fields
   await Promise.all(Object.entries(fieldsets).map(async ([fieldsetName, fieldsetFields]) => {
     let fieldsetEl = form;
 
@@ -92,11 +83,9 @@ async function createForm(formDef) {
     }));
   }));
 
-  // Handle form submission
   form.addEventListener('submit', (e) => {
     e.preventDefault();
 
-    // Basic validation
     const requiredFields = form.querySelectorAll('[required]');
     let isValid = true;
 
@@ -118,7 +107,6 @@ async function createForm(formDef) {
 }
 
 export default async function decorate(block) {
-  // Get form reference from block
   const formLink = block.querySelector('a[href$=".json"]');
   if (!formLink) {
     console.error('No form JSON link found in block');
@@ -126,6 +114,15 @@ export default async function decorate(block) {
   }
 
   const formPath = formLink.href;
+
+  const submitLink = block.querySelector('a[href*="script.google.com"]');
+  const submitUrl = submitLink ? submitLink.href : null;
+
+  if (!submitUrl) {
+    console.error('No submit URL found');
+    block.innerHTML = '<p class="form-error">Form configuration error: Missing submit URL</p>';
+    return;
+  }
 
   block.innerHTML = '';
 
@@ -137,28 +134,12 @@ export default async function decorate(block) {
 
     const json = await resp.json();
 
-    // Validate JSON structure
     if (!json.data || !Array.isArray(json.data)) {
       throw new Error('Invalid form definition: missing data array');
     }
 
-    // Check if form has :type = sheet configuration
-    const submitConfig = json.data.find((item) => item.Name === ':type');
-
-    let submitUrl = null;
-
-    if (submitConfig && submitConfig.Value === 'sheet') {
-      // Use AEM Forms Submission Service
-      submitUrl = '/.submit';
-    } else {
-      // Look for custom submit URL in the block
-      const submitLink = block.querySelector('a[href*="script.google.com"]')
-        || block.querySelector('a[href*="exec"]');
-      submitUrl = submitLink ? submitLink.href : '/.submit';
-    }
-
     const formDef = {
-      data: json.data.filter((item) => !item.Name.startsWith(':')), // Filter out config rows
+      data: json.data,
       submitUrl,
     };
 

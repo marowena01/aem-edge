@@ -14,7 +14,7 @@ async function submitForm(form) {
     const resp = await fetch(submitUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain',  // Changed to text/plain to avoid preflight
+        'Content-Type': 'text/plain', // Changed to text/plain to avoid preflight
       },
       body: JSON.stringify({ data }),
     });

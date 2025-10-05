@@ -136,24 +136,22 @@ export default async function decorate(block) {
     }
 
     // Check if form has :type = sheet configuration
-    const submitConfig = json.data.find(item => item.Name === ':type');
-    const sheetConfig = json.data.find(item => item.Name === ':sheet');
+    const submitConfig = json.data.find((item) => item.Name === ':type');
 
     let submitUrl = null;
 
     if (submitConfig && submitConfig.Value === 'sheet') {
       // Use AEM Forms Submission Service
-      // The service will handle submission to the sheet specified in :sheet
       submitUrl = '/.submit';
     } else {
       // Look for custom submit URL in the block
-      const submitLink = block.querySelector('a[href*="script.google.com"]') ||
-                        block.querySelector('a[href*="exec"]');
+      const submitLink = block.querySelector('a[href*="script.google.com"]')
+        || block.querySelector('a[href*="exec"]');
       submitUrl = submitLink ? submitLink.href : '/.submit';
     }
 
     const formDef = {
-      data: json.data.filter(item => !item.Name.startsWith(':')), // Filter out config rows
+      data: json.data.filter((item) => !item.Name.startsWith(':')), // Filter out config rows
       submitUrl,
     };
 

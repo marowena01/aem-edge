@@ -3,31 +3,32 @@ import createField from './form-fields.js';
 async function submitForm(form) {
   const formData = new FormData(form);
 
-  // Convert FormData to JSON
   const data = {};
   formData.forEach((value, key) => {
     data[key] = value;
   });
 
   try {
-    // Use the form's action attribute or default to sheet submission endpoint
-    const submitUrl = form.action || '/.submit';
+    const submitUrl = form.action;
 
     const resp = await fetch(submitUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/plain',  // Changed to text/plain to avoid preflight
       },
       body: JSON.stringify({ data }),
     });
 
-    if (resp.ok) {
+    const text = await resp.text();
+    const result = JSON.parse(text);
+
+    if (result.success) {
       const successMsg = document.createElement('div');
       successMsg.className = 'form-success';
       successMsg.innerHTML = '<p>Thank you! Your submission has been received.</p>';
       form.replaceWith(successMsg);
     } else {
-      throw new Error('Submission failed');
+      throw new Error(result.error || 'Submission failed');
     }
   } catch (err) {
     console.error('Form submission error:', err);
